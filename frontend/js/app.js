@@ -1,0 +1,159 @@
+const API_BASE =
+  window.location.origin && window.location.origin.startsWith("http")
+    ? window.location.origin
+    : "http://localhost:8000";
+
+const currencyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 2,
+});
+
+const percentFormatter = new Intl.NumberFormat("en-US", {
+  style: "percent",
+  maximumFractionDigits: 1,
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("paramsForm");
+  const status = document.getElementById("statusMessage");
+  const todaySummaryEl = document.getElementById("todaySummary");
+  const backtestSummaryEl = document.getElementById("backtestSummary");
+  const valueChartCanvas = document.getElementById("valueChart");
+  const multiplierChartCanvas = document.getElementById("multiplierChart");
+  setupTabs();
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const params = readParams();
+    status.textContent = "価格データを取得しています...";
+
+    try {
+      const apiResponse = await fetchPrices(params.asset, params.years);
+      status.textContent = `${apiResponse.prices.length} 件のデータを取得しました。`;
+      const backtestResult = runBacktest(
+        apiResponse.prices,
+        params.baseAmount,
+        params.lookback,
+        params.threshold2,
+        params.threshold3
+      );
+      updateTodaySummary(todaySummaryEl, apiResponse, backtestResult, params);
+      updateBacktestSummary(backtestSummaryEl, backtestResult);
+      renderValueChart(
+        valueChartCanvas,
+        backtestResult.dates,
+        backtestResult.baselineValues,
+        backtestResult.strategyValues,
+        backtestResult.priceSeries
+      );
+      renderMultiplierChart(multiplierChartCanvas, backtestResult.dates, backtestResult.multipliers);
+    } catch (error) {
+      console.error(error);
+      status.textContent = `エラー: ${error.message}`;
+      todaySummaryEl.textContent = "エラーが発生しました。パラメータを確認してください。";
+      backtestSummaryEl.textContent = "";
+    }
+  });
+});
+
+function setupTabs() {
+  const buttons = document.querySelectorAll(".tab-button");
+  const panels = document.querySelectorAll(".tab-panel");
+  buttons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const target = btn.dataset.tab;
+      buttons.forEach((b) => b.classList.toggle("active", b === btn));
+      panels.forEach((panel) => panel.classList.toggle("active", panel.id === target));
+    });
+  });
+}
+
+function readParams() {
+  return {
+    asset: document.getElementById("assetSelect").value,
+    baseAmount: Number(document.getElementById("baseAmount").value) || 0,
+    lookback: Number(document.getElementById("lookback").value) || 0,
+    threshold2: Number(document.getElementById("threshold2").value) || 0,
+    threshold3: Number(document.getElementById("threshold3").value) || 0,
+    years: Number(document.getElementById("years").value) || 1,
+  };
+}
+
+async function fetchPrices(asset, years) {
+  const response = await fetch(`${API_BASE}/api/prices/${asset}?years=${years}`);
+  if (!response.ok) {
+    throw new Error("価格データの取得に失敗しました。バックエンドが起動しているか確認してください。");
+  }
+  return response.json();
+}
+
+function updateTodaySummary(container, apiResponse, backtestResult, params) {
+  const latestPoint = apiResponse.prices.at(-1);
+  const latestMultiplier = backtestResult.multipliers.at(-1) ?? 1;
+  if (!latestPoint) {
+    container.textContent = "最新価格が取得できませんでした。";
+    return;
+  }
+  const investedToday = params.baseAmount * latestMultiplier;
+
+  container.innerHTML = `
+    <p>
+      ${apiResponse.symbol} (${latestPoint.date}) の終値は
+      <strong>${currencyFormatter.format(latestPoint.price)}</strong> です。
+    </p>
+    <div class="summary-grid">
+      <div>
+        <span>推奨倍率</span>
+        <strong>${latestMultiplier.toFixed(1)}x</strong>
+      </div>
+      <div>
+        <span>本日投資額</span>
+        <strong>${currencyFormatter.format(investedToday)}</strong>
+      </div>
+      <div>
+        <span>ベース額</span>
+        <strong>${currencyFormatter.format(params.baseAmount)}</strong>
+      </div>
+    </div>
+  `;
+}
+
+function updateBacktestSummary(container, backtestResult) {
+  const base = backtestResult.metrics.baseline;
+  const strat = backtestResult.metrics.strategy;
+  const stats = [
+    {
+      title: "ベースライン",
+      finalValue: currencyFormatter.format(base.finalValue),
+      invested: currencyFormatter.format(base.totalInvested),
+      profit: currencyFormatter.format(base.profit),
+      drawdown: percentFormatter.format(base.maxDrawdownPct / 100),
+    },
+    {
+      title: "戦略",
+      finalValue: currencyFormatter.format(strat.finalValue),
+      invested: currencyFormatter.format(strat.totalInvested),
+      profit: currencyFormatter.format(strat.profit),
+      drawdown: percentFormatter.format(strat.maxDrawdownPct / 100),
+    },
+  ];
+
+  container.innerHTML = `
+    <div class="summary-grid">
+      ${stats
+        .map(
+          (s) => `
+        <div>
+          <strong>${s.title}</strong>
+          <span>最終評価額</span>${s.finalValue}
+          <span>累計投資</span>${s.invested}
+          <span>損益</span>${s.profit}
+          <span>最大DD</span>${s.drawdown}
+        </div>
+      `
+        )
+        .join("")}
+    </div>
+  `;
+}

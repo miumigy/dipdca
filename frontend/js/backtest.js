@@ -1,0 +1,115 @@
+/**
+ * Run a simple DCA backtest using a drawdown-based multiplier strategy.
+ * @param {Array<{date: string, price: number}>} prices
+ * @param {number} baseAmount
+ * @param {number} lookbackDays
+ * @param {number} threshold2Pct
+ * @param {number} threshold3Pct
+ */
+function runBacktest(prices, baseAmount, lookbackDays, threshold2Pct, threshold3Pct) {
+  if (!Array.isArray(prices) || prices.length === 0) {
+    throw new Error("価格データが不足しています。");
+  }
+
+  const lookback = Math.max(1, lookbackDays);
+  const th2 = Math.max(0, threshold2Pct) / 100;
+  const th3 = Math.max(th2, threshold3Pct) / 100;
+
+  const dates = [];
+  const baselineValues = [];
+  const strategyValues = [];
+  const multipliers = [];
+  const priceSeries = [];
+
+  let baselineUnits = 0;
+  let baselineInvested = 0;
+  let strategyUnits = 0;
+  let strategyInvested = 0;
+
+  prices.forEach((point, index) => {
+    const price = Number(point.price);
+    if (!isFinite(price) || price <= 0) {
+      return;
+    }
+
+    const multiplier = computeMultiplier(prices, index, lookback, th2, th3);
+    multipliers.push(multiplier);
+
+    baselineUnits += baseAmount / price;
+    baselineInvested += baseAmount;
+    strategyUnits += (baseAmount * multiplier) / price;
+    strategyInvested += baseAmount * multiplier;
+
+    dates.push(point.date);
+    baselineValues.push(baselineUnits * price);
+    strategyValues.push(strategyUnits * price);
+    priceSeries.push(price);
+  });
+
+  const baselineMetrics = buildMetrics(baselineValues, baselineInvested);
+  const strategyMetrics = buildMetrics(strategyValues, strategyInvested);
+
+  return {
+    dates,
+    baselineValues,
+    strategyValues,
+    multipliers,
+    priceSeries,
+    metrics: {
+      baseline: baselineMetrics,
+      strategy: strategyMetrics,
+    },
+  };
+}
+
+function computeMultiplier(prices, index, lookback, th2, th3) {
+  if (index === 0) return 1;
+  const price = Number(prices[index].price);
+  const windowStart = Math.max(0, index - lookback + 1);
+  let rollingHigh = price;
+  for (let i = windowStart; i <= index; i += 1) {
+    rollingHigh = Math.max(rollingHigh, Number(prices[i].price));
+  }
+  if (!isFinite(rollingHigh) || rollingHigh === 0) return 1;
+
+  const drawdown = (rollingHigh - price) / rollingHigh;
+  if (drawdown >= th3) return 3;
+  if (drawdown >= th2) return 2;
+  return 1;
+}
+
+function buildMetrics(values, invested) {
+  const lastValue = values.at(-1) ?? 0;
+  const profit = lastValue - invested;
+  const profitPct = invested ? (profit / invested) * 100 : 0;
+  const { maxDrawdown, maxDrawdownPct } = computeMaxDrawdown(values);
+
+  return {
+    totalInvested: invested,
+    finalValue: lastValue,
+    profit,
+    profitPct,
+    maxDrawdown,
+    maxDrawdownPct,
+  };
+}
+
+function computeMaxDrawdown(series) {
+  let peak = 0;
+  let maxDrawdown = 0;
+
+  series.forEach((value) => {
+    if (value > peak) {
+      peak = value;
+    }
+    const drawdown = peak - value;
+    if (drawdown > maxDrawdown) {
+      maxDrawdown = drawdown;
+    }
+  });
+
+  return {
+    maxDrawdown,
+    maxDrawdownPct: peak ? (-maxDrawdown / peak) * 100 : 0,
+  };
+}

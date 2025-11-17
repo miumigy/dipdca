@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>dipdca</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <main class="app">
+      <header>
+        <h1>dipdca</h1>
+        <p class="subtitle">下落シグナル付き DCA ダッシュボード</p>
+      </header>
+
+      <section class="card">
+        <form id="paramsForm">
+          <div class="field-grid">
+            <label>
+              資産
+              <select id="assetSelect" required>
+                <option value="reit">REIT (REET)</option>
+                <option value="gold">GOLD (GLD)</option>
+                <option value="btc">BTC (BTC-USD)</option>
+              </select>
+            </label>
+            <label>
+              ベース額 ($)
+              <input id="baseAmount" type="number" min="1" value="100" required />
+            </label>
+            <label>
+              L (日数)
+              <input id="lookback" type="number" min="5" value="20" required />
+            </label>
+            <label>
+              th2 (%)
+              <input id="threshold2" type="number" min="1" value="5" step="0.5" required />
+            </label>
+            <label>
+              th3 (%)
+              <input id="threshold3" type="number" min="1" value="10" step="0.5" required />
+            </label>
+            <label>
+              期間 (年)
+              <input id="years" type="number" min="1" max="10" value="3" required />
+            </label>
+          </div>
+          <button type="submit" class="primary">データ取得 &amp; 解析</button>
+        </form>
+        <p id="statusMessage" class="status"></p>
+      </section>
+
+      <section class="card tabs">
+        <div class="tab-header">
+          <button class="tab-button active" data-tab="todayTab">今日の推奨</button>
+          <button class="tab-button" data-tab="backtestTab">バックテスト</button>
+        </div>
+        <div class="tab-content">
+          <div id="todayTab" class="tab-panel active">
+            <div id="todaySummary" class="summary-box">
+              フォーム送信後に結果が表示されます。
+            </div>
+          </div>
+          <div id="backtestTab" class="tab-panel">
+            <div id="backtestSummary" class="summary-box">
+              バックテスト結果はここに表示されます。
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="valueChart" height="300"></canvas>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="multiplierChart" height="220"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="js/backtest.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
