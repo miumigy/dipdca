@@ -18,7 +18,11 @@ cd "${REPO_ROOT}/backend"
 if [[ -x "${VENV_PATH}/bin/uvicorn" ]]; then
   UVICORN_CMD="${VENV_PATH}/bin/uvicorn"
 else
-  UVICORN_CMD="$(command -v uvicorn)"
+  if command -v uvicorn >/dev/null 2>&1; then
+    UVICORN_CMD="$(command -v uvicorn)"
+  else
+    UVICORN_CMD=""
+  fi
 fi
 
 PYTHON_CMD=""
@@ -38,6 +42,10 @@ fi
 if [[ -n "${UVICORN_CMD}" ]]; then
   RUN_CMD=("${UVICORN_CMD}" "app:app" "--reload" "--host" "0.0.0.0" "--port" "8000")
 else
+  if ! "${PYTHON_CMD}" -c "import uvicorn" >/dev/null 2>&1; then
+    echo "uvicorn モジュールが見つかりませんでした。backend/requirements.txt をインストールしてください。" | tee -a "${LOG_FILE}"
+    exit 1
+  fi
   RUN_CMD=("${PYTHON_CMD}" "-m" "uvicorn" "app:app" "--reload" "--host" "0.0.0.0" "--port" "8000")
 fi
 
