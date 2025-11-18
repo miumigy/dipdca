@@ -3,11 +3,32 @@ const chartRefs = {
   multiplier: null,
 };
 
-function renderValueChart(canvas, labels, baselineValues, strategyValues, priceValues) {
+const chartCurrencyConfigs = {
+  usd: { locale: "en-US", currency: "USD", maximumFractionDigits: 2 },
+  jpy: { locale: "ja-JP", currency: "JPY", maximumFractionDigits: 0 },
+};
+const chartCurrencyFormatters = {};
+
+function getChartCurrencyFormatter(currency) {
+  const normalized = (currency || "usd").toLowerCase();
+  if (!chartCurrencyFormatters[normalized]) {
+    const config = chartCurrencyConfigs[normalized] ?? chartCurrencyConfigs.usd;
+    chartCurrencyFormatters[normalized] = new Intl.NumberFormat(config.locale, {
+      style: "currency",
+      currency: config.currency,
+      maximumFractionDigits: config.maximumFractionDigits,
+    });
+  }
+  return chartCurrencyFormatters[normalized];
+}
+
+function renderValueChart(canvas, labels, baselineValues, strategyValues, priceValues, currency) {
   if (!canvas) return;
   if (chartRefs.value) {
     chartRefs.value.destroy();
   }
+
+  const formatter = getChartCurrencyFormatter(currency);
 
   chartRefs.value = new Chart(canvas, {
     type: "line",
@@ -54,6 +75,17 @@ function renderValueChart(canvas, labels, baselineValues, strategyValues, priceV
             color: "#f5f7ff",
           },
         },
+        tooltip: {
+          callbacks: {
+            label: (context) => {
+              const value = context.parsed?.y ?? context.parsed;
+              if (context.dataset?.label) {
+                return `${context.dataset.label}: ${formatter.format(Number(value ?? 0))}`;
+              }
+              return formatter.format(Number(value ?? 0));
+            },
+          },
+        },
       },
       scales: {
         x: {
@@ -66,6 +98,7 @@ function renderValueChart(canvas, labels, baselineValues, strategyValues, priceV
           position: "left",
           ticks: {
             color: "#98a1c0",
+            callback: (value) => formatter.format(Number(value ?? 0)),
           },
         },
         yPrice: {
@@ -75,6 +108,7 @@ function renderValueChart(canvas, labels, baselineValues, strategyValues, priceV
           },
           ticks: {
             color: "#6feab3",
+            callback: (value) => formatter.format(Number(value ?? 0)),
           },
         },
       },

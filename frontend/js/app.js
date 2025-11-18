@@ -3,11 +3,11 @@ const API_BASE =
     ? window.location.origin
     : "http://localhost:8000";
 
-const currencyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 2,
-});
+const currencyConfigs = {
+  usd: { locale: "en-US", currency: "USD", maximumFractionDigits: 2 },
+  jpy: { locale: "ja-JP", currency: "JPY", maximumFractionDigits: 0 },
+};
+const currencyFormatters = {};
 
 const percentFormatter = new Intl.NumberFormat("en-US", {
   style: "percent",
@@ -21,7 +21,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const backtestSummaryEl = document.getElementById("backtestSummary");
   const valueChartCanvas = document.getElementById("valueChart");
   const multiplierChartCanvas = document.getElementById("multiplierChart");
+  const currencySelect = document.getElementById("currencySelect");
+  const baseAmountLabel = document.getElementById("baseAmountLabel");
   setupTabs();
+  updateBaseAmountLabel(currencySelect?.value ?? "usd", baseAmountLabel);
+  currencySelect?.addEventListener("change", () => {
+    updateBaseAmountLabel(currencySelect.value, baseAmountLabel);
+  });
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -29,8 +35,11 @@ document.addEventListener("DOMContentLoaded", () => {
     status.textContent = "価格データを取得しています...";
 
     try {
-      const apiResponse = await fetchPrices(params.asset, params.years);
+      const apiResponse = await fetchPrices(params.asset, params.years, params.currency);
       status.textContent = `${apiResponse.prices.length} 件のデータを取得しました。`;
+      const displayCurrency = apiResponse.currency ?? params.currency;
+      params.currency = displayCurrency;
+      updateBaseAmountLabel(displayCurrency, baseAmountLabel);
       const backtestResult = runBacktest(
         apiResponse.prices,
         params.baseAmount,
@@ -39,13 +48,14 @@ document.addEventListener("DOMContentLoaded", () => {
         params.threshold3
       );
       updateTodaySummary(todaySummaryEl, apiResponse, backtestResult, params);
-      updateBacktestSummary(backtestSummaryEl, backtestResult);
+      updateBacktestSummary(backtestSummaryEl, backtestResult, params.currency);
       renderValueChart(
         valueChartCanvas,
         backtestResult.dates,
         backtestResult.baselineValues,
         backtestResult.strategyValues,
-        backtestResult.priceSeries
+        backtestResult.priceSeries,
+        params.currency
       );
       renderMultiplierChart(multiplierChartCanvas, backtestResult.dates, backtestResult.multipliers);
     } catch (error) {
@@ -77,11 +87,13 @@ function readParams() {
     threshold2: Number(document.getElementById("threshold2").value) || 0,
     threshold3: Number(document.getElementById("threshold3").value) || 0,
     years: Number(document.getElementById("years").value) || 1,
+    currency: document.getElementById("currencySelect").value?.toLowerCase() || "usd",
   };
 }
 
-async function fetchPrices(asset, years) {
-  const response = await fetch(`${API_BASE}/api/prices/${asset}?years=${years}`);
+async function fetchPrices(asset, years, currency) {
+  const params = new URLSearchParams({ years, currency: currency ?? "usd" });
+  const response = await fetch(`${API_BASE}/api/prices/${asset}?${params}`);
   if (!response.ok) {
     throw new Error("価格データの取得に失敗しました。バックエンドが起動しているか確認してください。");
   }
@@ -100,7 +112,7 @@ function updateTodaySummary(container, apiResponse, backtestResult, params) {
   container.innerHTML = `
     <p>
       ${apiResponse.symbol} (${latestPoint.date}) の終値は
-      <strong>${currencyFormatter.format(latestPoint.price)}</strong> です。
+      <strong>${formatCurrency(latestPoint.price, params.currency)}</strong> です。
     </p>
     <div class="summary-grid">
       <div>
@@ -109,32 +121,32 @@ function updateTodaySummary(container, apiResponse, backtestResult, params) {
       </div>
       <div>
         <span>本日投資額</span>
-        <strong>${currencyFormatter.format(investedToday)}</strong>
+        <strong>${formatCurrency(investedToday, params.currency)}</strong>
       </div>
       <div>
         <span>ベース額</span>
-        <strong>${currencyFormatter.format(params.baseAmount)}</strong>
+        <strong>${formatCurrency(params.baseAmount, params.currency)}</strong>
       </div>
     </div>
   `;
 }
 
-function updateBacktestSummary(container, backtestResult) {
+function updateBacktestSummary(container, backtestResult, currency) {
   const base = backtestResult.metrics.baseline;
   const strat = backtestResult.metrics.strategy;
   const stats = [
     {
       title: "ベースライン",
-      finalValue: currencyFormatter.format(base.finalValue),
-      invested: currencyFormatter.format(base.totalInvested),
-      profit: currencyFormatter.format(base.profit),
+      finalValue: formatCurrency(base.finalValue, currency),
+      invested: formatCurrency(base.totalInvested, currency),
+      profit: formatCurrency(base.profit, currency),
       drawdown: percentFormatter.format(base.maxDrawdownPct / 100),
     },
     {
       title: "戦略",
-      finalValue: currencyFormatter.format(strat.finalValue),
-      invested: currencyFormatter.format(strat.totalInvested),
-      profit: currencyFormatter.format(strat.profit),
+      finalValue: formatCurrency(strat.finalValue, currency),
+      invested: formatCurrency(strat.totalInvested, currency),
+      profit: formatCurrency(strat.profit, currency),
       drawdown: percentFormatter.format(strat.maxDrawdownPct / 100),
     },
   ];
@@ -153,7 +165,33 @@ function updateBacktestSummary(container, backtestResult) {
         </div>
       `
         )
-        .join("")}
+      .join("")}
     </div>
   `;
+}
+
+function getCurrencyFormatter(currency) {
+  const normalized = (currency || "usd").toLowerCase();
+  if (!currencyFormatters[normalized]) {
+    const config = currencyConfigs[normalized] ?? currencyConfigs.usd;
+    currencyFormatters[normalized] = new Intl.NumberFormat(config.locale, {
+      style: "currency",
+      currency: config.currency,
+      maximumFractionDigits: config.maximumFractionDigits,
+    });
+  }
+  return currencyFormatters[normalized];
+}
+
+function formatCurrency(value, currency) {
+  const numericValue = Number(value);
+  const resolvedValue = Number.isFinite(numericValue) ? numericValue : 0;
+  return getCurrencyFormatter(currency).format(resolvedValue);
+}
+
+const currencySymbols = { usd: "$", jpy: "¥" };
+function updateBaseAmountLabel(currency, labelEl) {
+  if (!labelEl) return;
+  const symbol = currencySymbols[currency?.toLowerCase()] ?? currencySymbols.usd;
+  labelEl.textContent = `ベース額 (${symbol})`;
 }
