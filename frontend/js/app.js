@@ -108,10 +108,18 @@ function updateTodaySummary(container, apiResponse, backtestResult, params) {
     return;
   }
   const investedToday = params.baseAmount * latestMultiplier;
+  const recentMetrics = computeRecentHighData(apiResponse.prices, params.lookback);
+  const highLabel = recentMetrics?.highDate ? `<small>${recentMetrics.highDate}</small>` : "";
+  const highValueFormatted = recentMetrics
+    ? formatCurrency(recentMetrics.highValue, params.currency)
+    : "データなし";
+  const dropPctFormatted = recentMetrics
+    ? percentFormatter.format(recentMetrics.dropPct)
+    : "データなし";
 
   container.innerHTML = `
     <p>
-      ${apiResponse.symbol} (${latestPoint.date}) の終値は
+      ${apiResponse.symbol} (${latestPoint.date}) の終値は<br />
       <strong>${formatCurrency(latestPoint.price, params.currency)}</strong> です。
     </p>
     <div class="summary-grid">
@@ -126,6 +134,16 @@ function updateTodaySummary(container, apiResponse, backtestResult, params) {
       <div>
         <span>ベース額</span>
         <strong>${formatCurrency(params.baseAmount, params.currency)}</strong>
+      </div>
+    </div>
+    <div class="summary-grid">
+      <div>
+        <span>直近高値 ${highLabel}</span>
+        <strong>${highValueFormatted}</strong>
+      </div>
+      <div>
+        <span>下落率</span>
+        <strong>${dropPctFormatted}</strong>
       </div>
     </div>
   `;
@@ -194,4 +212,35 @@ function updateBaseAmountLabel(currency, labelEl) {
   if (!labelEl) return;
   const symbol = currencySymbols[currency?.toLowerCase()] ?? currencySymbols.usd;
   labelEl.textContent = `ベース額 (${symbol})`;
+}
+
+function computeRecentHighData(prices, lookbackDays) {
+  if (!Array.isArray(prices) || prices.length === 0) {
+    return null;
+  }
+  const lookback = Math.max(1, Number(lookbackDays) || 1);
+  const windowStart = Math.max(prices.length - lookback, 0);
+  let highPoint = null;
+  for (let i = windowStart; i < prices.length; i += 1) {
+    const price = Number(prices[i]?.price);
+    if (!Number.isFinite(price) || price <= 0) {
+      continue;
+    }
+    if (!highPoint || price > highPoint.price) {
+      highPoint = { price, date: prices[i].date };
+    }
+  }
+  if (!highPoint) {
+    return null;
+  }
+  const latestPrice = Number(prices.at(-1)?.price);
+  const dropPct =
+    Number.isFinite(latestPrice) && latestPrice >= 0
+      ? Math.max(0, (highPoint.price - latestPrice) / highPoint.price)
+      : 0;
+  return {
+    highValue: highPoint.price,
+    highDate: highPoint.date,
+    dropPct,
+  };
 }

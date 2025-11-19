@@ -165,6 +165,11 @@ select:focus {
   font-size: 0.8rem;
   color: var(--text-muted);
 }
+.summary-grid small {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
 
 .chart-wrapper {
   margin-top: 1.2rem;
