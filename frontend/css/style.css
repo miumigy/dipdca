@@ -179,6 +179,69 @@ select:focus {
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+.table-wrapper {
+  margin-top: 0.8rem;
+  overflow-x: auto;
+}
+
+.backtest-metrics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  background: transparent;
+  table-layout: fixed;
+}
+
+.backtest-metrics-table th,
+.backtest-metrics-table td {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.75rem 1rem;
+  text-align: left;
+  vertical-align: top;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.backtest-metrics-table thead th {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  border-bottom-width: 1.5px;
+  background: rgba(104, 209, 255, 0.1);
+  color: var(--text);
+}
+
+.backtest-metrics-table tbody th {
+  font-weight: 600;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.metric-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.metric-detail small {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.metric-money {
+  white-space: nowrap;
+  word-break: normal;
+}
+
+.backtest-metrics-table tbody tr:nth-child(odd) {
+  background: transparent;
+}
+
+.backtest-metrics-table tbody tr:hover {
+  background: transparent;
+}
+
 @media (max-width: 480px) {
   .app {
     padding: 1rem;

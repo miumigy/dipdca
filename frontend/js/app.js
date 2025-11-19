@@ -150,42 +150,106 @@ function updateTodaySummary(container, apiResponse, backtestResult, params) {
 }
 
 function updateBacktestSummary(container, backtestResult, currency) {
-  const base = backtestResult.metrics.baseline;
-  const strat = backtestResult.metrics.strategy;
   const stats = [
+    buildSummaryStat("ベースライン", backtestResult.metrics.baseline, currency),
+    buildSummaryStat("戦略", backtestResult.metrics.strategy, currency),
+  ];
+
+  const [baselineStat, strategyStat] = stats;
+  const metricRows = [
     {
-      title: "ベースライン",
-      finalValue: formatCurrency(base.finalValue, currency),
-      invested: formatCurrency(base.totalInvested, currency),
-      profit: formatCurrency(base.profit, currency),
-      drawdown: percentFormatter.format(base.maxDrawdownPct / 100),
+      label: "最終評価額",
+      baselineValue: `<span class="metric-money">${baselineStat.finalValue}</span>`,
+      strategyValue: `<span class="metric-money">${strategyStat.finalValue}</span>`,
     },
     {
-      title: "戦略",
-      finalValue: formatCurrency(strat.finalValue, currency),
-      invested: formatCurrency(strat.totalInvested, currency),
-      profit: formatCurrency(strat.profit, currency),
-      drawdown: percentFormatter.format(strat.maxDrawdownPct / 100),
+      label: "累計投資",
+      baselineValue: `<span class="metric-money">${baselineStat.invested}</span>`,
+      strategyValue: `<span class="metric-money">${strategyStat.invested}</span>`,
+    },
+    {
+      label: "損益・ドローダウン",
+      baselineValue: `
+        <div class="metric-detail">
+          <span class="metric-money">${baselineStat.profit}</span>
+          <small>最大DD ${baselineStat.drawdown}</small>
+        </div>
+      `,
+      strategyValue: `
+        <div class="metric-detail">
+          <span class="metric-money">${strategyStat.profit}</span>
+          <small>最大DD ${strategyStat.drawdown}</small>
+        </div>
+      `,
+    },
+    {
+      label: "収益性",
+      baselineValue: `
+        <div class="metric-detail">
+          <small>累計収益率 ${baselineStat.profitPct}</small>
+          <small>リターン倍率 ${baselineStat.returnMultiple}</small>
+          <small>年率 ${baselineStat.annualizedReturnPct}</small>
+          <small>期間 ${baselineStat.duration}</small>
+        </div>
+      `,
+      strategyValue: `
+        <div class="metric-detail">
+          <small>累計収益率 ${strategyStat.profitPct}</small>
+          <small>リターン倍率 ${strategyStat.returnMultiple}</small>
+          <small>年率 ${strategyStat.annualizedReturnPct}</small>
+          <small>期間 ${strategyStat.duration}</small>
+        </div>
+      `,
     },
   ];
 
+  const rowsHtml = metricRows
+    .map(
+      (row) => `
+      <tr>
+        <th scope="row">${row.label}</th>
+        <td>${row.baselineValue}</td>
+        <td>${row.strategyValue}</td>
+      </tr>
+    `
+    )
+    .join("");
+
   container.innerHTML = `
-    <div class="summary-grid">
-      ${stats
-        .map(
-          (s) => `
-        <div>
-          <strong>${s.title}</strong>
-          <span>最終評価額</span>${s.finalValue}
-          <span>累計投資</span>${s.invested}
-          <span>損益</span>${s.profit}
-          <span>最大DD</span>${s.drawdown}
-        </div>
-      `
-        )
-      .join("")}
+    <div class="table-wrapper">
+      <table class="backtest-metrics-table">
+        <thead>
+          <tr>
+            <th>指標</th>
+            <th>ベースライン</th>
+            <th>戦略</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml}
+        </tbody>
+      </table>
     </div>
   `;
+}
+
+function buildSummaryStat(title, metrics, currency) {
+  return {
+    title,
+    finalValue: formatCurrency(metrics.finalValue, currency),
+    invested: formatCurrency(metrics.totalInvested, currency),
+    profit: formatCurrency(metrics.profit, currency),
+    drawdown: percentFormatter.format(metrics.maxDrawdownPct / 100),
+    profitPct: formatPercentValue(metrics.profitPct),
+    returnMultiple: metrics.returnMultiple ? `${metrics.returnMultiple.toFixed(2)}x` : "0x",
+    annualizedReturnPct: formatPercentValue(metrics.annualizedReturnPct),
+    duration: metrics.durationYears ? `${metrics.durationYears.toFixed(2)}年` : "0年",
+  };
+}
+
+function formatPercentValue(value) {
+  const numeric = Number.isFinite(Number(value)) ? Number(value) : 0;
+  return percentFormatter.format(numeric / 100);
 }
 
 function getCurrencyFormatter(currency) {

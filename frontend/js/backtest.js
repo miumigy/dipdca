@@ -46,8 +46,8 @@ function runBacktest(prices, baseAmount, lookbackDays, threshold2Pct, threshold3
     priceSeries.push(price);
   });
 
-  const baselineMetrics = buildMetrics(baselineValues, baselineInvested);
-  const strategyMetrics = buildMetrics(strategyValues, strategyInvested);
+  const baselineMetrics = buildMetrics(dates, baselineValues, baselineInvested);
+  const strategyMetrics = buildMetrics(dates, strategyValues, strategyInvested);
 
   return {
     dates,
@@ -78,17 +78,26 @@ function computeMultiplier(prices, index, lookback, th2, th3) {
   return 1;
 }
 
-function buildMetrics(values, invested) {
+function buildMetrics(dates, values, invested) {
   const lastValue = values.at(-1) ?? 0;
   const profit = lastValue - invested;
   const profitPct = invested ? (profit / invested) * 100 : 0;
   const { maxDrawdown, maxDrawdownPct } = computeMaxDrawdown(values);
+  const returnMultiple = invested ? lastValue / invested : 0;
+  const durationYears = computeDurationYears(dates);
+  const annualizedReturnPct =
+    durationYears > 0 && returnMultiple > 0
+      ? (Math.pow(returnMultiple, 1 / durationYears) - 1) * 100
+      : 0;
 
   return {
     totalInvested: invested,
     finalValue: lastValue,
     profit,
     profitPct,
+    returnMultiple,
+    annualizedReturnPct,
+    durationYears,
     maxDrawdown,
     maxDrawdownPct,
   };
@@ -112,4 +121,17 @@ function computeMaxDrawdown(series) {
     maxDrawdown,
     maxDrawdownPct: peak ? (-maxDrawdown / peak) * 100 : 0,
   };
+}
+
+function computeDurationYears(dates) {
+  if (!Array.isArray(dates) || dates.length < 2) {
+    return 0;
+  }
+  const firstDate = new Date(dates[0]);
+  const lastDate = new Date(dates.at(-1));
+  if (Number.isNaN(firstDate) || Number.isNaN(lastDate) || lastDate <= firstDate) {
+    return 0;
+  }
+  const MS_PER_YEAR = 365 * 24 * 60 * 60 * 1000;
+  return (lastDate - firstDate) / MS_PER_YEAR;
 }
