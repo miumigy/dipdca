@@ -1,10 +1,16 @@
 import datetime
+import sys
+from pathlib import Path
 
 import pytest
-from httpx import AsyncClient
+import httpx
 from pandas import Series, date_range
 
-from backend import app as app_module
+ROOT_DIR = Path(__file__).resolve().parents[2]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from backend import app as app_module  # noqa: E402
 
 
 def make_series(values):
@@ -22,7 +28,8 @@ async def test_get_prices_usd(monkeypatch):
 
     monkeypatch.setattr(app_module, "download_close_series", fake_download_close)
 
-    async with AsyncClient(app=app_module.app, base_url="http://test") as client:
+    transport = httpx.ASGITransport(app=app_module.app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get("/api/prices/reit?years=1&currency=usd")
 
     assert response.status_code == 200
@@ -46,7 +53,8 @@ async def test_get_prices_jpy_with_fx(monkeypatch):
 
     monkeypatch.setattr(app_module, "download_close_series", fake_download_close)
 
-    async with AsyncClient(app=app_module.app, base_url="http://test") as client:
+    transport = httpx.ASGITransport(app=app_module.app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get("/api/prices/gold?years=2&currency=jpy")
 
     assert response.status_code == 200
@@ -59,7 +67,8 @@ async def test_get_prices_jpy_with_fx(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_get_prices_invalid_asset(monkeypatch):
-    async with AsyncClient(app=app_module.app, base_url="http://test") as client:
+    transport = httpx.ASGITransport(app=app_module.app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get("/api/prices/invalid?years=1&currency=usd")
 
     assert response.status_code == 400
