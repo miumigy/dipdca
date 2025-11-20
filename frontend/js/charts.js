@@ -22,13 +22,26 @@ function getChartCurrencyFormatter(currency) {
   return chartCurrencyFormatters[normalized];
 }
 
-function renderValueChart(canvas, labels, baselineValues, strategyValues, priceValues, currency) {
+function renderValueChart(
+  canvas,
+  labels,
+  baselineValues,
+  strategyValues,
+  priceValues,
+  currency,
+  chartLabels
+) {
   if (!canvas) return;
   if (chartRefs.value) {
     chartRefs.value.destroy();
   }
 
   const formatter = getChartCurrencyFormatter(currency);
+  const datasetLabels = {
+    baseline: chartLabels?.baseline ?? "Baseline",
+    strategy: chartLabels?.strategy ?? "Strategy",
+    price: chartLabels?.price ?? "Price",
+  };
 
   chartRefs.value = new Chart(canvas, {
     type: "line",
@@ -36,7 +49,7 @@ function renderValueChart(canvas, labels, baselineValues, strategyValues, priceV
       labels,
       datasets: [
         {
-          label: "ベースライン",
+          label: datasetLabels.baseline,
           data: baselineValues,
           borderColor: "#68d1ff",
           yAxisID: "yValue",
@@ -44,7 +57,7 @@ function renderValueChart(canvas, labels, baselineValues, strategyValues, priceV
           tension: 0.3,
         },
         {
-          label: "戦略",
+          label: datasetLabels.strategy,
           data: strategyValues,
           borderColor: "#ffb347",
           yAxisID: "yValue",
@@ -52,7 +65,7 @@ function renderValueChart(canvas, labels, baselineValues, strategyValues, priceV
           tension: 0.3,
         },
         {
-          label: "価格",
+          label: datasetLabels.price,
           data: priceValues,
           borderColor: "#4ade80",
           borderDash: [5, 4],
@@ -116,11 +129,13 @@ function renderValueChart(canvas, labels, baselineValues, strategyValues, priceV
   });
 }
 
-function renderMultiplierChart(canvas, labels, multipliers) {
+function renderMultiplierChart(canvas, labels, multipliers, chartLabels) {
   if (!canvas) return;
   if (chartRefs.multiplier) {
     chartRefs.multiplier.destroy();
   }
+
+  const multiplierLabel = chartLabels?.multiplier ?? "Multiplier";
 
   chartRefs.multiplier = new Chart(canvas, {
     type: "bar",
@@ -128,7 +143,7 @@ function renderMultiplierChart(canvas, labels, multipliers) {
       labels,
       datasets: [
         {
-          label: "倍率",
+          label: multiplierLabel,
           data: multipliers,
           backgroundColor: "#ff6b6b",
         },

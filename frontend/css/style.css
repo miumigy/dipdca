@@ -27,8 +27,21 @@ body {
 }
 
 header {
-  text-align: center;
   margin-bottom: 1.5rem;
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.header-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
 }
 
 h1 {
@@ -40,6 +53,44 @@ h1 {
   margin: 0.25rem 0 0;
   color: var(--text-muted);
   font-size: 0.95rem;
+}
+
+.language-switch label {
+  display: none;
+}
+
+.language-switch {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  align-items: flex-end;
+}
+
+.language-links {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.language-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.35rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.language-link:hover {
+  color: var(--text);
+}
+
+.language-link.active {
+  color: var(--text);
+  border-color: var(--accent);
+  background: var(--accent-muted);
 }
 
 .card {

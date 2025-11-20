@@ -8,7 +8,9 @@
  */
 function runBacktest(prices, baseAmount, lookbackDays, threshold2Pct, threshold3Pct) {
   if (!Array.isArray(prices) || prices.length === 0) {
-    throw new Error("価格データが不足しています。");
+    const error = new Error("INSUFFICIENT_DATA");
+    error.code = "INSUFFICIENT_DATA";
+    throw error;
   }
 
   const lookback = Math.max(1, lookbackDays);

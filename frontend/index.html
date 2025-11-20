@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,68 +10,79 @@
   <body>
     <main class="app">
       <header>
-        <h1>dipdca</h1>
-        <p class="subtitle">下落シグナル付き DCA ダッシュボード</p>
+        <div class="header-top">
+          <div class="header-title">
+            <h1>dipdca</h1>
+            <p class="subtitle" id="subtitle">Dip-signal DCA dashboard</p>
+          </div>
+          <div class="language-switch">
+            <span id="languageLabel">Language</span>
+            <div class="language-links" id="languageLinks">
+              <a href="#" class="language-link active" data-lang="en">English</a>
+              <a href="#" class="language-link" data-lang="ja">日本語</a>
+            </div>
+          </div>
+        </div>
       </header>
 
       <section class="card">
         <form id="paramsForm">
           <div class="field-grid">
             <label>
-              資産
+              <span id="assetLabel">Asset</span>
               <select id="assetSelect" required>
-                <option value="reit">REIT (REET)</option>
-                <option value="gold">GOLD (GLD)</option>
-                <option value="btc">BTC (BTC-USD)</option>
+                <option value="reit" id="assetOptionReit">REIT (REET)</option>
+                <option value="gold" id="assetOptionGold">GOLD (GLD)</option>
+                <option value="btc" id="assetOptionBtc">BTC (BTC-USD)</option>
               </select>
             </label>
             <label>
-              表示通貨
+              <span id="currencyLabel">Display currency</span>
               <select id="currencySelect" required>
-                <option value="usd">米ドル (USD)</option>
-                <option value="jpy" selected>日本円 (JPY)</option>
+                <option value="usd" id="currencyOptionUsd">US Dollar (USD)</option>
+                <option value="jpy" id="currencyOptionJpy">Japanese Yen (JPY)</option>
               </select>
             </label>
             <label>
-              <span id="baseAmountLabel">ベース額 ($)</span>
+              <span id="baseAmountLabel">Base amount ($)</span>
               <input id="baseAmount" type="number" min="1" value="500" required />
             </label>
             <label>
-              L (日数)
+              <span id="lookbackLabel">L (days)</span>
               <input id="lookback" type="number" min="5" value="20" required />
             </label>
             <label>
-              th2 (%)
+              <span id="threshold2Label">th2 (%)</span>
               <input id="threshold2" type="number" min="1" value="5" step="0.5" required />
             </label>
             <label>
-              th3 (%)
+              <span id="threshold3Label">th3 (%)</span>
               <input id="threshold3" type="number" min="1" value="10" step="0.5" required />
             </label>
             <label>
-              期間 (年)
+              <span id="yearsLabel">Years</span>
               <input id="years" type="number" min="1" max="10" value="3" required />
             </label>
           </div>
-          <button type="submit" class="primary">データ取得 &amp; 解析</button>
+          <button type="submit" class="primary" id="submitButton">Fetch data &amp; analyze</button>
         </form>
         <p id="statusMessage" class="status"></p>
       </section>
 
       <section class="card tabs">
         <div class="tab-header">
-          <button class="tab-button active" data-tab="todayTab">今日の推奨</button>
-          <button class="tab-button" data-tab="backtestTab">バックテスト</button>
+          <button class="tab-button active" data-tab="todayTab" id="todayTabButton">Today's suggestion</button>
+          <button class="tab-button" data-tab="backtestTab" id="backtestTabButton">Backtest</button>
         </div>
         <div class="tab-content">
           <div id="todayTab" class="tab-panel active">
             <div id="todaySummary" class="summary-box">
-              フォーム送信後に結果が表示されます。
+              Results will appear after submitting.
             </div>
           </div>
           <div id="backtestTab" class="tab-panel">
             <div id="backtestSummary" class="summary-box">
-              バックテスト結果はここに表示されます。
+              Backtest results will show here.
             </div>
             <div class="chart-wrapper">
               <canvas id="valueChart" height="300"></canvas>
