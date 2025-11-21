@@ -28,6 +28,17 @@ uvicorn app:app --reload
 4. “Backtest” tab compares baseline DCA vs. signal strategy with value curves and multiplier history.
 5. Use the header Language toggle for EN/JA, and Currency toggle for USD/JPY formatting.
 
+## Architecture (Mermaid)
+
+```mermaid
+flowchart LR
+  User -->|forms & charts| Frontend[[frontend/index.html]]
+  Frontend -->|GET /api/prices/{asset}| Backend[[FastAPI]]
+  Backend -->|yfinance| Yahoo[Yahoo Finance]
+  Backend -->|JSON prices| Frontend
+  Frontend -->|run backtest.js| Charts[Chart.js renders]
+```
+
 ## Backtest / signal logic
 
 - Take the rolling high of closing prices over the last L days, and compute drawdown from it.
@@ -35,6 +46,21 @@ uvicorn app:app --reload
 - Baseline: always 1x (fixed amount).
 - Strategy: base amount × multiplier above.
 - Metrics: final value, total invested, profit and cumulative return, return multiple, annualized return, max drawdown, etc.
+
+### Strategy flow (Mermaid)
+
+```mermaid
+flowchart TD
+  Start[New price point] --> Lookback[Roll last L-day high]
+  Lookback --> DD[Compute drawdown from rolling high]
+  DD -->|>= th3| M3[Multiplier = 3x]
+  DD -->|>= th2 & < th3| M2[Multiplier = 2x]
+  DD -->|else| M1[Multiplier = 1x]
+  M3 --> Invest[Invest base * multiplier]
+  M2 --> Invest
+  M1 --> Invest
+  Invest --> Repeat[Next day...]
+```
 
 ## API
 
