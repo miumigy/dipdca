@@ -32,11 +32,11 @@ uvicorn app:app --reload
 
 ```mermaid
 flowchart LR
-  User -->|forms & charts| Frontend[[frontend/index.html]]
-  Frontend -->|GET /api/prices/{asset}| Backend[[FastAPI]]
-  Backend -->|yfinance| Yahoo[Yahoo Finance]
+  User -->|forms & charts| Frontend[[Frontend (index.html)]]
+  Frontend -->|GET /api/prices/{asset}| Backend[[FastAPI server]]
+  Backend -->|yfinance| Yahoo[Yahoo Finance (API)]
   Backend -->|JSON prices| Frontend
-  Frontend -->|run backtest.js| Charts[Chart.js renders]
+  Frontend -->|runs backtest.js| Charts[Chart.js visuals]
 ```
 
 ## Backtest / signal logic
