@@ -80,3 +80,7 @@ uvicorn app:app --reload
 - Max lookback range is 10 years (`MAX_YEARS`); `years` query is validated to 1–10.
 - JPY formatting drops fractional digits; USD keeps two decimals.
 - For future PaaS work (e.g., Render), keep `/health` and README commands up to date.
+
+## License
+
+- MIT License. See `LICENSE` for full terms.
