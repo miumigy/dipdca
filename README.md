@@ -1,15 +1,15 @@
-# dipdca
+# Dip-signal DCA - Dollar-cost averaging with dip signals (REIT / GOLD / BTC)
 
-下落シグナル付きドルコスト平均（DCA）の研究・運用用ミニアプリ。毎日の買付を「1x / 2x / 3x」のどれにするかを示し、同じロジックで過去の成績をバックテストします。
+A lightweight research/ops app for dip-signal dollar-cost averaging (DCA). It tells you whether today’s buy should be 1x / 2x / 3x of your base amount, and backtests the same logic against a baseline DCA.
 
-- 対象: REIT (REET) / GOLD (GLD) / BTC (BTC-USD)
-- 構成: FastAPI + yfinance（価格取得） / Pure HTML+CSS+JS + Chart.js（フロント）
-- 表示通貨: USD / JPY 切り替え
-- 言語: 英語 / 日本語 UI 切り替え
+- Assets: REIT (REET) / GOLD (GLD) / BTC (BTC-USD)
+- Stack: FastAPI + yfinance for price fetch / pure HTML + CSS + JS + Chart.js for the frontend
+- Display currency: Toggle USD / JPY
+- Languages: Toggle English / Japanese UI
 
-## 使い方（ローカル）
+## Local usage
 
-バックエンドを起動し、フロントをブラウザで開きます。FastAPI はフロントを静的配信するため、`uvicorn` を動かすだけでも閲覧・実行できます。
+Start the backend and open the frontend in your browser. FastAPI can also serve the static frontend, so running `uvicorn` alone is enough.
 
 ```bash
 cd backend
@@ -17,34 +17,34 @@ pip install -r requirements.txt
 uvicorn app:app --reload
 ```
 
-- ブラウザで `http://localhost:8000/` を開く（フロントが FastAPI から配信されます）。
-- もしくは `frontend/index.html` を直接開いても動作します（この場合バックエンドは `http://localhost:8000` を参照）。
+- Open `http://localhost:8000/` in your browser (the frontend is served by FastAPI).
+- You can also open `frontend/index.html` directly; in that case the backend is assumed to run at `http://localhost:8000`.
 
-## 画面の流れ
+## Screen flow
 
-1. 資産、表示通貨、ベース額、ルックバック日数（L）、2x/3x に切り替えるしきい値（th2/th3）、履歴年数（1〜10年）を入力。
-2. 「Fetch data & analyze」を押すとバックエンドから終値を取得してバックテストを実行。
-3. 「Today's suggestion」タブで本日の推奨倍率と投資額、直近高値からの下落率を表示。
-4. 「Backtest」タブでベースラインDCA vs シグナル戦略の評価額推移と倍率履歴をグラフ＆表で確認。
-5. ヘッダーの Language 切替で英日UI、Currency 切替で USD/JPY 表示を切替。
+1. Choose asset, display currency, base amount, lookback days (L), thresholds for switching to 2x/3x (th2/th3), and history range (1–10 years).
+2. Click “Fetch data & analyze” to pull closes from the backend and run the backtest.
+3. “Today’s suggestion” tab shows today’s suggested multiple, amount to invest, and drawdown from the recent high.
+4. “Backtest” tab compares baseline DCA vs. signal strategy with value curves and multiplier history.
+5. Use the header Language toggle for EN/JA, and Currency toggle for USD/JPY formatting.
 
-## バックテスト／シグナルの考え方
+## Backtest / signal logic
 
-- ルックバック期間 L 日の終値の最高値を rolling high とし、そこからの下落率（drawdown）で倍率を決定。
-  - drawdown ≥ th3 のとき 3x、drawdown ≥ th2 のとき 2x、それ以外は 1x
-- ベースライン: 毎回 1x（一定額）で買付
-- 戦略: 上記倍率 × ベース額で買付
-- 指標: 最終評価額、累計投資額、損益・累計収益率、リターン倍率、年率換算、最大ドローダウンなどを計算。
+- Take the rolling high of closing prices over the last L days, and compute drawdown from it.
+  - If drawdown ≥ th3 → 3x; if drawdown ≥ th2 → 2x; otherwise 1x.
+- Baseline: always 1x (fixed amount).
+- Strategy: base amount × multiplier above.
+- Metrics: final value, total invested, profit and cumulative return, return multiple, annualized return, max drawdown, etc.
 
 ## API
 
 - `GET /health`
-  - Render 等のヘルスチェック用。`{"status":"ok"}` を返却。
+  - For Render-style health checks. Returns `{"status":"ok"}`.
 - `GET /api/prices/{asset}`
   - `asset`: `reit` | `gold` | `btc`
-  - `years`: 1〜10（デフォルト 1）
-  - `currency`: `usd` | `jpy`（デフォルト usd）
-  - 戻り値: 以下のような JSON
+  - `years`: 1–10 (default 1)
+  - `currency`: `usd` | `jpy` (default usd)
+  - Response example:
     ```json
     {
       "asset": "reit",
@@ -57,26 +57,26 @@ uvicorn app:app --reload
       ]
     }
     ```
-  - 備考: Yahoo Finance の日次終値を yfinance で取得。JPY の場合は `JPY=X` を取得し同日のレートで掛け合わせています（欠損は前方補完）。
+  - Notes: Daily closes are fetched from Yahoo Finance via yfinance. For JPY, `JPY=X` is fetched and multiplied on each date (missing FX values are forward-filled).
 
-## デプロイのヒント（例: Render）
+## Deployment tips (e.g., Render)
 
-- Build コマンド: `cd backend && pip install -r requirements.txt`
-- Start コマンド: `cd backend && uvicorn app:app --host 0.0.0.0 --port $PORT`
-- Health check: `GET /health`（ポートは Render の割り当てポート）
+- Build command: `cd backend && pip install -r requirements.txt`
+- Start command: `cd backend && uvicorn app:app --host 0.0.0.0 --port $PORT`
+- Health check: `GET /health` (use Render’s assigned port)
 
-## ディレクトリ
+## Directory
 
-- `backend/app.py`: FastAPI エンドポイントと静的配信。CORS は全許可。
-- `backend/requirements.txt`: FastAPI / uvicorn / yfinance。
-- `frontend/`: ビルドレスな HTML/CSS/JS。Chart.js は CDN。
-  - `js/backtest.js`: 倍率判定とメトリクス計算のみ（副作用なし）。
-  - `js/charts.js`: Chart.js による評価額推移（線）と倍率履歴（棒）グラフ。
-  - `js/app.js`: フォーム入力、API 呼び出し、i18n、描画ハンドリング。
+- `backend/app.py`: FastAPI endpoints and static serving. CORS is fully open.
+- `backend/requirements.txt`: FastAPI / uvicorn / yfinance.
+- `frontend/`: Build-less HTML/CSS/JS. Chart.js via CDN.
+  - `js/backtest.js`: Multiplier decision and metrics (pure functions).
+  - `js/charts.js`: Chart.js for value curves (line) and multiplier history (bar).
+  - `js/app.js`: Form handling, API calls, i18n, rendering control.
 
-## 開発メモ
+## Development notes
 
-- 価格取得はネットワークアクセスが必要。PaaS での稼働を想定し、余計な依存は持たない。
-- 最大取得年数は 10 年（`MAX_YEARS`）。`years` クエリの範囲は 1〜10 にバリデート。
-- JPY 表示時は少数桁を落とし、USD は2桁でフォーマット。
-- 今後 Render 配備などの PaaS 対応を進める場合は `/health` 追加や README のコマンド更新を検討。
+- Price fetch requires network access; keep dependencies minimal for PaaS-friendly deploys.
+- Max lookback range is 10 years (`MAX_YEARS`); `years` query is validated to 1–10.
+- JPY formatting drops fractional digits; USD keeps two decimals.
+- For future PaaS work (e.g., Render), keep `/health` and README commands up to date.
