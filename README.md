@@ -39,7 +39,7 @@ flowchart LR
   charts[Chart.js visuals]
 
   user -->|forms & charts| fe
-  fe -->|GET /api/prices/{asset}| be
+  fe -->|GET /api/prices/:asset| be
   be -->|yfinance| yf
   be -->|JSON prices| fe
   fe -->|runs backtest.js| charts
