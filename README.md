@@ -31,7 +31,7 @@ uvicorn app:app --reload
 ## Architecture (Mermaid)
 
 ```mermaid
-flowchart LR
+flowchart TD
   user([User])
   fe[Frontend: index.html]
   be[Backend: FastAPI]
