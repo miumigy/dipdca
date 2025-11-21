@@ -33,6 +33,11 @@ app.add_middleware(
 )
 
 
+@app.get("/health", tags=["health"])
+async def health_check():
+    return {"status": "ok"}
+
+
 def download_close_series(symbol: str, start_date: datetime) -> Series:
     history = yf.download(
         symbol,
